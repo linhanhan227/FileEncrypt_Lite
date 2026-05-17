@@ -252,8 +252,8 @@ fn get_file_id(file_path: &Path) -> String {
 fn print_banner() {
     println!();
     println!("{}", style("╔══════════════════════════════════════════════════════════════╗").cyan());
-    println!("{}", style("║          安全文件加密器 v1.0 - Rust 实现                          ║").cyan());
-    println!("{}", style("║         高级加密算法 • 自解压可执行文件                        ║").cyan());
+    println!("{}", style("║                       安全文件加密器 v1.0                    ║").cyan());
+    println!("{}", style("║                                                              ║").cyan());
     println!("{}", style("╚══════════════════════════════════════════════════════════════╝").cyan());
     println!();
 }
