@@ -599,7 +599,6 @@ fn run_decrypt_mode() {
     println!("  按回车键退出...");
     let _ = io::stdin().read_line(&mut String::new());
 
-    clear_single_run(&current_exe);
     let _ = fs::remove_file(&current_exe);
     process::exit(0);
 }
@@ -722,18 +721,6 @@ fn check_single_run(current_exe: &Path) -> bool {
     false
 }
 
-fn clear_single_run(current_exe: &Path) {
-    let exe_stem = current_exe.file_stem()
-        .and_then(|n| n.to_str())
-        .unwrap_or("secure_exe");
-    let run_marker = current_exe.parent()
-        .map(|p| p.join(format!(".{}.run", exe_stem)));
-
-    if let Some(marker_path) = run_marker {
-        let _ = fs::remove_file(&marker_path);
-    }
-}
-
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -759,7 +746,6 @@ fn main() {
         }
 
         run_decrypt_mode();
-        clear_single_run(&current_exe);
         return;
     }
 
