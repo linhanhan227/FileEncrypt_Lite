@@ -574,7 +574,7 @@ fn run_main_menu() {
     }
 }
 
-fn run_decrypt_mode() {
+fn run_decrypt_mode(should_self_delete: bool) {
     let current_exe = env::current_exe().expect("无法获取当前程序路径");
     let result = decrypt_file_once();
 
@@ -599,7 +599,9 @@ fn run_decrypt_mode() {
     println!("  按回车键退出...");
     let _ = io::stdin().read_line(&mut String::new());
 
-    cleanup_encrypted_artifacts(&current_exe);
+    if should_self_delete {
+        cleanup_encrypted_artifacts(&current_exe);
+    }
     process::exit(0);
 }
 
@@ -787,12 +789,12 @@ fn main() {
             process::exit(1);
         }
 
-        run_decrypt_mode();
+        run_decrypt_mode(true);
         return;
     }
 
     if args.len() > 1 && args[1] == "--decrypt" {
-        run_decrypt_mode();
+        run_decrypt_mode(false);
         return;
     }
 
@@ -805,7 +807,7 @@ fn main() {
             process::exit(1);
         }
 
-        run_decrypt_mode();
+        run_decrypt_mode(false);
         return;
     }
 
