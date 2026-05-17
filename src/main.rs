@@ -495,7 +495,7 @@ fn decrypt_file_menu() -> Result<(), CryptoError> {
 
             let self_path = env::current_exe()?;
             println!("  {} 正在清理加密文件...", style("●").cyan());
-            let _ = fs::remove_file(self_path);
+            cleanup_encrypted_artifacts(&self_path);
         }
         Err(_) => {
             println!();
@@ -599,7 +599,7 @@ fn run_decrypt_mode() {
     println!("  按回车键退出...");
     let _ = io::stdin().read_line(&mut String::new());
 
-    let _ = fs::remove_file(&current_exe);
+    cleanup_encrypted_artifacts(&current_exe);
     process::exit(0);
 }
 
@@ -703,22 +703,64 @@ fn is_encrypted_file(path: &Path) -> bool {
     }
 }
 
-fn check_single_run(current_exe: &Path) -> bool {
+fn run_marker_path(current_exe: &Path) -> Option<PathBuf> {
     let exe_stem = current_exe.file_stem()
         .and_then(|n| n.to_str())
         .unwrap_or("secure_exe");
-    let run_marker = current_exe.parent()
-        .map(|p| p.join(format!(".{}.run", exe_stem)));
+    current_exe.parent()
+        .map(|p| p.join(format!(".{}.run", exe_stem)))
+}
 
+fn check_single_run(current_exe: &Path) -> bool {
+    let run_marker = run_marker_path(current_exe);
     if let Some(marker_path) = run_marker {
         if marker_path.exists() {
             return false;
         }
-        if let Ok(_) = fs::write(&marker_path, b"1") {
-            return true;
-        }
+        return fs::write(&marker_path, b"1").is_ok();
     }
     false
+}
+
+#[cfg(windows)]
+fn escape_powershell_single_quoted(value: &str) -> String {
+    value.replace('\'', "''")
+}
+
+fn cleanup_encrypted_artifacts(current_exe: &Path) {
+    let marker_path = run_marker_path(current_exe);
+
+    #[cfg(windows)]
+    {
+        let exe = escape_powershell_single_quoted(&current_exe.to_string_lossy());
+        let marker = marker_path.as_ref()
+            .map(|p| escape_powershell_single_quoted(&p.to_string_lossy()))
+            .unwrap_or_default();
+
+        let script = format!(
+            "$exe='{exe}';$marker='{marker}';\
+            for($i=0;$i -lt 200;$i++){{\
+            try{{Remove-Item -LiteralPath $exe -Force -ErrorAction Stop}}catch{{}};\
+            if(-not (Test-Path -LiteralPath $exe)){{break}};\
+            Start-Sleep -Milliseconds 100\
+            }};\
+            if($marker -and (Test-Path -LiteralPath $marker)){{\
+            try{{Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue}}catch{{}}\
+            }}"
+        );
+
+        let _ = process::Command::new("powershell")
+            .args(["-NoProfile", "-Command", &script])
+            .spawn();
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = fs::remove_file(current_exe);
+        if let Some(marker_path) = marker_path {
+            let _ = fs::remove_file(marker_path);
+        }
+    }
 }
 
 fn main() {
@@ -741,7 +783,7 @@ fn main() {
             println!("  此加密文件已运行过一次，无法再次运行。");
             println!("  请勿重复运行此程序。");
             println!();
-            let _ = fs::remove_file(&current_exe);
+            cleanup_encrypted_artifacts(&current_exe);
             process::exit(1);
         }
 
