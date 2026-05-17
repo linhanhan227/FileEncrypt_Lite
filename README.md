@@ -2,6 +2,11 @@
 
 安全的文件加密工具，使用 AES-256-GCM + Argon2id 加密算法。
 
+### 友链
+
+- [LinuxDo社区](https://linux.do/)
+
+
 ## 功能特性
 
 - **军用级加密**：AES-256-GCM 对称加密 + Argon2id 密钥派生
